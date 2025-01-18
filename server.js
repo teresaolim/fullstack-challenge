@@ -16,6 +16,26 @@ app.get('/todos', (req, res) => {
   res.json(todos);
 });
 
+// POST /todos - Add a new to-do
+app.post('/todos', (req, res) => {
+    const { description } = req.body;
+  
+    if (!description) {
+      return res.status(400).json({ error: 'Description is required' });
+    }
+  
+    const newTask = {
+      id: Date.now(), // Temporary ID
+      description,
+      state: 'INCOMPLETE',
+      createdAt: new Date(),
+      completedAt: null,
+    };
+  
+    todos.push(newTask); // Add the new task to the array
+    res.status(201).json(newTask); // Return the created task
+});
+
 // Start the server
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
