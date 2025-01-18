@@ -40,6 +40,16 @@ function App() {
       .catch((error) => console.error('Error updating task:', error));
   };
 
+  // Delete a task
+  const deleteTask = (id) => {
+    axios
+      .delete(`http://localhost:3000/todos/${id}`)
+      .then(() => {
+        setTasks(tasks.filter((task) => task.id !== id)); // Remove the task from the state
+      })
+      .catch((error) => console.error('Error deleting task:', error));
+  };
+
   return (
     <div>
       <h1>To-Do List</h1>
@@ -64,7 +74,8 @@ function App() {
               checked={task.state === 'COMPLETE'}
               onChange={() => toggleTaskState(task.id, task.state)}
             />
-            <span>{task.description}</span> - <span>{task.state}</span>
+            <span>{task.description}</span>
+            <button onClick={() => deleteTask(task.id)}>Delete</button>
           </li>
         ))}
       </ul>

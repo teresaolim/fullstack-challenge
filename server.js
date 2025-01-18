@@ -55,6 +55,20 @@ app.patch('/todos/:id', (req, res) => {
     res.json(task);
 });
 
+// DELETE /todos/:id - Remove a to-do item
+app.delete('/todos/:id', (req, res) => {
+    const { id } = req.params;
+  
+    const taskIndex = todos.findIndex((todo) => todo.id === parseInt(id));
+  
+    if (taskIndex === -1) {
+      return res.status(404).json({ error: 'Task not found' });
+    }
+  
+    todos.splice(taskIndex, 1); // Remove the task from the array
+    res.status(204).send(); // No content response
+});
+
 // Start the server
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
