@@ -4,14 +4,18 @@ import axios from 'axios';
 function App() {
   const [tasks, setTasks] = useState([]);
   const [newTask, setNewTask] = useState('');
+  const [filter, setFilter] = useState('ALL'); // State for filter
+  const [sortBy, setSortBy] = useState('createdAt'); // State for sorting
 
   // Fetch tasks from the backend
   useEffect(() => {
     axios
-      .get('http://localhost:3000/todos')
+      .get('http://localhost:3000/todos', {
+        params: { filter, orderBy: sortBy }, // Pass filter and sortBy as query parameters
+      })
       .then((response) => setTasks(response.data))
       .catch((error) => console.error('Error fetching tasks:', error));
-  }, []);
+  }, [filter, sortBy]); // Refetch when filter or sortBy changes
 
   // Add a new task
   const addTask = () => {
@@ -45,7 +49,7 @@ function App() {
     axios
       .delete(`http://localhost:3000/todos/${id}`)
       .then(() => {
-        setTasks(tasks.filter((task) => task.id !== id)); // Remove the task from the state
+        setTasks(tasks.filter((task) => task.id !== id));
       })
       .catch((error) => console.error('Error deleting task:', error));
   };
@@ -63,6 +67,23 @@ function App() {
           placeholder="Add a new task"
         />
         <button onClick={addTask}>Add Task</button>
+      </div>
+
+      {/* Filters and Sorting */}
+      <div>
+        <label>Filter:</label>
+        <select value={filter} onChange={(e) => setFilter(e.target.value)}>
+          <option value="ALL">All</option>
+          <option value="COMPLETE">Complete</option>
+          <option value="INCOMPLETE">Incomplete</option>
+        </select>
+
+        <label>Sort By:</label>
+        <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+          <option value="description">Description</option>
+          <option value="createdAt">Created Date</option>
+          <option value="completedAt">Completed Date</option>
+        </select>
       </div>
 
       {/* Task List */}

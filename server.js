@@ -11,10 +11,33 @@ let todos = [
   { id: 2, description: 'Finish project', state: 'COMPLETE', createdAt: new Date(), completedAt: new Date() },
 ];
 
-// GET /todos - List all to-dos
+// GET /todos - List all to-dos with filtering and sorting
 app.get('/todos', (req, res) => {
-  res.json(todos);
+    const { filter = 'ALL', orderBy = 'createdAt' } = req.query;
+  
+    // Filter tasks
+    let filteredTodos = todos;
+    if (filter === 'COMPLETE') {
+      filteredTodos = todos.filter((todo) => todo.state === 'COMPLETE');
+    } else if (filter === 'INCOMPLETE') {
+      filteredTodos = todos.filter((todo) => todo.state === 'INCOMPLETE');
+    }
+  
+    // Sort tasks
+    filteredTodos.sort((a, b) => {
+      if (orderBy === 'description') {
+        return a.description.localeCompare(b.description);
+      } else if (orderBy === 'completedAt') {
+        return new Date(a.completedAt) - new Date(b.completedAt);
+      } else {
+        // Default to sorting by createdAt
+        return new Date(a.createdAt) - new Date(b.createdAt);
+      }
+    });
+  
+    res.json(filteredTodos);
 });
+  
 
 // POST /todos - Add a new to-do
 app.post('/todos', (req, res) => {
