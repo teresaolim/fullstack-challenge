@@ -36,6 +36,25 @@ app.post('/todos', (req, res) => {
     res.status(201).json(newTask); // Return the created task
 });
 
+// PATCH /todos/:id - Update a to-do item
+app.patch('/todos/:id', (req, res) => {
+    const { id } = req.params;
+    const { state } = req.body;
+  
+    const task = todos.find((todo) => todo.id === parseInt(id));
+  
+    if (!task) {
+      return res.status(404).json({ error: 'Task not found' });
+    }
+  
+    if (state) {
+      task.state = state;
+      task.completedAt = state === 'COMPLETE' ? new Date() : null;
+    }
+  
+    res.json(task);
+});
+
 // Start the server
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);

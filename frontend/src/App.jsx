@@ -3,7 +3,7 @@ import axios from 'axios';
 
 function App() {
   const [tasks, setTasks] = useState([]);
-  const [newTask, setNewTask] = useState(''); // Input field state
+  const [newTask, setNewTask] = useState('');
 
   // Fetch tasks from the backend
   useEffect(() => {
@@ -20,10 +20,24 @@ function App() {
     axios
       .post('http://localhost:3000/todos', { description: newTask })
       .then((response) => {
-        setTasks([...tasks, response.data]); // Add the new task to the state
-        setNewTask(''); // Clear the input field
+        setTasks([...tasks, response.data]);
+        setNewTask('');
       })
       .catch((error) => console.error('Error adding task:', error));
+  };
+
+  // Toggle task state (complete/incomplete)
+  const toggleTaskState = (id, currentState) => {
+    axios
+      .patch(`http://localhost:3000/todos/${id}`, {
+        state: currentState === 'INCOMPLETE' ? 'COMPLETE' : 'INCOMPLETE',
+      })
+      .then((response) => {
+        setTasks(
+          tasks.map((task) => (task.id === id ? response.data : task))
+        );
+      })
+      .catch((error) => console.error('Error updating task:', error));
   };
 
   return (
@@ -45,6 +59,11 @@ function App() {
       <ul>
         {tasks.map((task) => (
           <li key={task.id}>
+            <input
+              type="checkbox"
+              checked={task.state === 'COMPLETE'}
+              onChange={() => toggleTaskState(task.id, task.state)}
+            />
             <span>{task.description}</span> - <span>{task.state}</span>
           </li>
         ))}
