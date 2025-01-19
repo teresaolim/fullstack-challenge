@@ -8,15 +8,44 @@ const formatDate = (timestamp) => {
   const date = new Date(timestamp);
   return date.toISOString(); // Format as ISO string (e.g., "2025-01-19T17:54:52.000Z")
 };
+const { z } = require('zod');
+
+// Input Validation Schema
+const todoInputSchema = z.object({
+  description: z
+    .string({
+      required_error: 'Description is required', // Custom error for missing field
+      invalid_type_error: 'Description must be a string', // Custom error for wrong type
+    })
+    .min(1, 'Description cannot be empty'), // Custom error for empty string
+  state: z.enum(['INCOMPLETE', 'COMPLETE']).optional(),
+});
+
+// Response Validation Schema
+const todoResponseSchema = z.object({
+  id: z.number(),
+  description: z.string(),
+  state: z.enum(['COMPLETE', 'INCOMPLETE']),
+  createdAt: z.string(),
+  completedAt: z.string().nullable(),
+});
 
 // Middleware
 app.use(cors());
 app.use(express.json());
+// Middleware to catch JSON parsing errors
+app.use((err, req, res, next) => {
+  if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
+    return res.status(400).json({ error: 'Invalid JSON format' });
+  }
+  next();
+});
 
 // GET /todos - List all to-dos with filtering and sorting
 app.get('/todos', async (req, res) => {
   try {
-    const { filter = 'ALL', orderBy = 'createdAt' } = req.query;
+    // Validate query parameters
+    const { filter = 'ALL', orderBy = 'createdAt' } = querySchema.parse(req.query);
 
     let query = knex('todos');
     if (filter === 'COMPLETE') {
@@ -26,27 +55,29 @@ app.get('/todos', async (req, res) => {
     }
 
     const todos = await query.orderBy(orderBy);
-    res.json(todos);
+
+    // Validate the response for all tasks
+    const validatedTodos = todos.map((todo) => todoResponseSchema.parse(todo));
+    res.json(validatedTodos);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch todos' });
+    res.status(400).json({ error: error.errors || 'Invalid query parameters' });
   }
 });
 
 // POST /todos - Add a new to-do
 app.post('/todos', async (req, res) => {
   try {
-    const { description } = req.body;
+    // Validate the input using todoInputSchema
+    const validatedData = todoInputSchema.parse(req.body);
 
-    if (!description) {
-      return res.status(400).json({ error: 'Description is required' });
-    }
-
-    const [id] = await knex('todos').insert({ description });
+    // Create the new task in the database
+    const [id] = await knex('todos').insert({ description: validatedData.description });
     const newTask = await knex('todos').where({ id }).first();
 
-    res.status(201).json(newTask);
+    // Validate the response before sending it
+    res.status(201).json(todoResponseSchema.parse(newTask));
   } catch (error) {
-    res.status(500).json({ error: 'Failed to add a new task' });
+    res.status(400).json({ error: error.errors || 'Invalid request payload' });
   }
 });
 
@@ -54,26 +85,29 @@ app.post('/todos', async (req, res) => {
 app.patch('/todos/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { state } = req.body;
 
+    // Validate the input using a partial schema (only optional fields)
+    const validatedData = todoInputSchema.partial().parse(req.body);
+
+    // Check if the task exists
     const task = await knex('todos').where({ id }).first();
     if (!task) {
       return res.status(404).json({ error: 'Task not found' });
     }
 
+    // Update the task in the database
     const updatedTask = {
-      state,
-      completedAt: state === 'COMPLETE' ? new Date() : null,
+      state: validatedData.state,
+      completedAt: validatedData.state === 'COMPLETE' ? new Date().toISOString() : null,
     };
 
     await knex('todos').where({ id }).update(updatedTask);
     const result = await knex('todos').where({ id }).first();
 
-    result.completedAt = formatDate(result.completedAt);
-
-    res.json(result);
+    // Validate the response before sending it
+    res.json(todoResponseSchema.parse(result));
   } catch (error) {
-    res.status(500).json({ error: 'Failed to update task' });
+    res.status(400).json({ error: error.errors || 'Invalid request payload' });
   }
 });
 
