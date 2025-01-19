@@ -4,33 +4,38 @@ import axios from 'axios';
 function App() {
   const [tasks, setTasks] = useState([]);
   const [newTask, setNewTask] = useState('');
-  const [filter, setFilter] = useState('ALL'); // State for filter
-  const [sortBy, setSortBy] = useState('createdAt'); // State for sorting
+  const [filter, setFilter] = useState('ALL');
+  const [sortBy, setSortBy] = useState('createdAt');
+  const [message, setMessage] = useState(''); // Feedback message
 
   // Fetch tasks from the backend
   useEffect(() => {
     axios
       .get('http://localhost:3000/todos', {
-        params: { filter, orderBy: sortBy }, // Pass filter and sortBy as query parameters
+        params: { filter, orderBy: sortBy },
       })
       .then((response) => setTasks(response.data))
-      .catch((error) => console.error('Error fetching tasks:', error));
-  }, [filter, sortBy]); // Refetch when filter or sortBy changes
+      .catch((error) => setMessage('Error fetching tasks: ' + error.message));
+  }, [filter, sortBy]);
 
   // Add a new task
   const addTask = () => {
-    if (!newTask.trim()) return;
+    if (!newTask.trim()) {
+      setMessage('Task description cannot be empty.');
+      return;
+    }
 
     axios
       .post('http://localhost:3000/todos', { description: newTask })
       .then((response) => {
         setTasks([...tasks, response.data]);
         setNewTask('');
+        setMessage('Task added successfully!');
       })
-      .catch((error) => console.error('Error adding task:', error));
+      .catch((error) => setMessage('Error adding task: ' + error.message));
   };
 
-  // Toggle task state (complete/incomplete)
+  // Toggle task state
   const toggleTaskState = (id, currentState) => {
     axios
       .patch(`http://localhost:3000/todos/${id}`, {
@@ -40,8 +45,9 @@ function App() {
         setTasks(
           tasks.map((task) => (task.id === id ? response.data : task))
         );
+        setMessage('Task updated successfully!');
       })
-      .catch((error) => console.error('Error updating task:', error));
+      .catch((error) => setMessage('Error updating task: ' + error.message));
   };
 
   // Delete a task
@@ -50,8 +56,9 @@ function App() {
       .delete(`http://localhost:3000/todos/${id}`)
       .then(() => {
         setTasks(tasks.filter((task) => task.id !== id));
+        setMessage('Task deleted successfully!');
       })
-      .catch((error) => console.error('Error deleting task:', error));
+      .catch((error) => setMessage('Error deleting task: ' + error.message));
   };
 
   return (
@@ -85,6 +92,9 @@ function App() {
           <option value="completedAt">Completed Date</option>
         </select>
       </div>
+
+      {/* Feedback Message */}
+      {message && <p>{message}</p>}
 
       {/* Task List */}
       <ul>

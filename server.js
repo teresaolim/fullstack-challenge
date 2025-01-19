@@ -13,84 +13,94 @@ let todos = [
 
 // GET /todos - List all to-dos with filtering and sorting
 app.get('/todos', (req, res) => {
-    const { filter = 'ALL', orderBy = 'createdAt' } = req.query;
+    try {
+      const { filter = 'ALL', orderBy = 'createdAt' } = req.query;
   
-    // Filter tasks
-    let filteredTodos = todos;
-    if (filter === 'COMPLETE') {
-      filteredTodos = todos.filter((todo) => todo.state === 'COMPLETE');
-    } else if (filter === 'INCOMPLETE') {
-      filteredTodos = todos.filter((todo) => todo.state === 'INCOMPLETE');
-    }
-  
-    // Sort tasks
-    filteredTodos.sort((a, b) => {
-      if (orderBy === 'description') {
-        return a.description.localeCompare(b.description);
-      } else if (orderBy === 'completedAt') {
-        return new Date(a.completedAt) - new Date(b.completedAt);
-      } else {
-        // Default to sorting by createdAt
-        return new Date(a.createdAt) - new Date(b.createdAt);
+      let filteredTodos = todos;
+      if (filter === 'COMPLETE') {
+        filteredTodos = todos.filter((todo) => todo.state === 'COMPLETE');
+      } else if (filter === 'INCOMPLETE') {
+        filteredTodos = todos.filter((todo) => todo.state === 'INCOMPLETE');
       }
-    });
   
-    res.json(filteredTodos);
+      filteredTodos.sort((a, b) => {
+        if (orderBy === 'description') {
+          return a.description.localeCompare(b.description);
+        } else if (orderBy === 'completedAt') {
+          return new Date(a.completedAt) - new Date(b.completedAt);
+        } else {
+          return new Date(a.createdAt) - new Date(b.createdAt);
+        }
+      });
+  
+      res.json(filteredTodos);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to fetch todos' });
+    }
 });
-  
 
 // POST /todos - Add a new to-do
 app.post('/todos', (req, res) => {
-    const { description } = req.body;
+    try {
+      const { description } = req.body;
   
-    if (!description) {
-      return res.status(400).json({ error: 'Description is required' });
+      if (!description) {
+        return res.status(400).json({ error: 'Description is required' });
+      }
+  
+      const newTask = {
+        id: Date.now(),
+        description,
+        state: 'INCOMPLETE',
+        createdAt: new Date(),
+        completedAt: null,
+      };
+  
+      todos.push(newTask);
+      res.status(201).json(newTask);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to add a new task' });
     }
-  
-    const newTask = {
-      id: Date.now(), // Temporary ID
-      description,
-      state: 'INCOMPLETE',
-      createdAt: new Date(),
-      completedAt: null,
-    };
-  
-    todos.push(newTask); // Add the new task to the array
-    res.status(201).json(newTask); // Return the created task
 });
 
 // PATCH /todos/:id - Update a to-do item
 app.patch('/todos/:id', (req, res) => {
-    const { id } = req.params;
-    const { state } = req.body;
+    try {
+      const { id } = req.params;
+      const { state } = req.body;
   
-    const task = todos.find((todo) => todo.id === parseInt(id));
+      const task = todos.find((todo) => todo.id === parseInt(id));
+      if (!task) {
+        return res.status(404).json({ error: 'Task not found' });
+      }
   
-    if (!task) {
-      return res.status(404).json({ error: 'Task not found' });
+      if (state) {
+        task.state = state;
+        task.completedAt = state === 'COMPLETE' ? new Date() : null;
+      }
+  
+      res.json(task);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to update task' });
     }
-  
-    if (state) {
-      task.state = state;
-      task.completedAt = state === 'COMPLETE' ? new Date() : null;
-    }
-  
-    res.json(task);
 });
 
 // DELETE /todos/:id - Remove a to-do item
 app.delete('/todos/:id', (req, res) => {
-    const { id } = req.params;
+    try {
+      const { id } = req.params;
   
-    const taskIndex = todos.findIndex((todo) => todo.id === parseInt(id));
+      const taskIndex = todos.findIndex((todo) => todo.id === parseInt(id));
+      if (taskIndex === -1) {
+        return res.status(404).json({ error: 'Task not found' });
+      }
   
-    if (taskIndex === -1) {
-      return res.status(404).json({ error: 'Task not found' });
+      todos.splice(taskIndex, 1);
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to delete task' });
     }
-  
-    todos.splice(taskIndex, 1); // Remove the task from the array
-    res.status(204).send(); // No content response
-});
+});  
 
 // Start the server
 app.listen(PORT, () => {
