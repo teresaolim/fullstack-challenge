@@ -8,7 +8,7 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test": "vitest", // Added for running frontend test
+    "test": "vitest"
   },
   "dependencies": {
     "axios": "^1.7.9",
@@ -34,6 +34,6 @@
     "postcss": "^8.5.1",
     "tailwindcss": "^3.4.17",
     "vite": "^6.0.5",
-    "vitest": "^1.0.0", // Added for testing (optional)
+    "vitest": "^1.0.0"
   }
 }

@@ -3,12 +3,13 @@ const cors = require('cors');
 const app = express();
 const PORT = 3000;
 const knex = require('knex')(require('./knexfile.js').development);
+const { z } = require('zod');
+
 const formatDate = (timestamp) => {
   if (!timestamp) return null;
   const date = new Date(timestamp);
   return date.toISOString(); // Format as ISO string (e.g., "2025-01-19T17:54:52.000Z")
 };
-const { z } = require('zod');
 
 // Input Validation Schema
 const todoInputSchema = z.object({
@@ -28,6 +29,12 @@ const todoResponseSchema = z.object({
   state: z.enum(['COMPLETE', 'INCOMPLETE']),
   createdAt: z.string(),
   completedAt: z.string().nullable(),
+});
+
+// Query Parameters Validation Schema
+const querySchema = z.object({
+  filter: z.enum(['ALL', 'COMPLETE', 'INCOMPLETE']).optional(),
+  orderBy: z.enum(['description', 'createdAt', 'completedAt']).optional(),
 });
 
 // Middleware
@@ -57,7 +64,12 @@ app.get('/todos', async (req, res) => {
     const todos = await query.orderBy(orderBy);
 
     // Validate the response for all tasks
-    const validatedTodos = todos.map((todo) => todoResponseSchema.parse(todo));
+    //const validatedTodos = todos.map((todo) => todoResponseSchema.parse(todo));
+    const validatedTodos = todos.map((todo) => todoResponseSchema.parse({
+      ...todo,
+      createdAt: formatDate(todo.createdAt),
+      completedAt: formatDate(todo.completedAt),
+    }));
     res.json(validatedTodos);
   } catch (error) {
     res.status(400).json({ error: error.errors || 'Invalid query parameters' });
@@ -75,7 +87,12 @@ app.post('/todos', async (req, res) => {
     const newTask = await knex('todos').where({ id }).first();
 
     // Validate the response before sending it
-    res.status(201).json(todoResponseSchema.parse(newTask));
+    //res.status(201).json(todoResponseSchema.parse(newTask));
+    res.status(201).json(todoResponseSchema.parse({
+      ...newTask,
+      createdAt: formatDate(newTask.createdAt),
+      completedAt: formatDate(newTask.completedAt),
+    }));
   } catch (error) {
     res.status(400).json({ error: error.errors || 'Invalid request payload' });
   }
@@ -105,7 +122,12 @@ app.patch('/todos/:id', async (req, res) => {
     const result = await knex('todos').where({ id }).first();
 
     // Validate the response before sending it
-    res.json(todoResponseSchema.parse(result));
+    //res.json(todoResponseSchema.parse(result));
+    res.json(todoResponseSchema.parse({
+      ...result,
+      createdAt: formatDate(result.createdAt),
+      completedAt: formatDate(result.completedAt),
+    }));
   } catch (error) {
     res.status(400).json({ error: error.errors || 'Invalid request payload' });
   }
