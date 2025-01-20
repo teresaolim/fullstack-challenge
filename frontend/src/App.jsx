@@ -9,6 +9,7 @@ function App() {
   const [message, setMessage] = useState(''); // Feedback message
   const [editingTaskId, setEditingTaskId] = useState(null); // ID of the task being edited
   const [editDescription, setEditDescription] = useState(''); // New description for the task being edited
+  const [hideCompleted, setHideCompleted] = useState(false); // Hide completed tasks
 
   // Fetch tasks from the backend
   useEffect(() => {
@@ -183,106 +184,121 @@ function App() {
       </h2>
 
       <ul style={{ listStyleType: 'none', padding: 0 }}>
-        {tasks.map((task) => (
-          <li
-            key={task.id}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '10px',
-              borderBottom: '1px solid #ddd',
-            }}
-          >
-            <div>
-              <input
-                type="checkbox"
-                checked={task.state === 'COMPLETE'}
-                onChange={() => toggleTaskState(task.id, task.state)}
-                aria-label={`Mark task as ${task.state === 'COMPLETE' ? 'incomplete' : 'complete'}`}
-              />
-              {editingTaskId === task.id ? (
-                <div style={{ display: 'inline-flex', alignItems: 'center' }}>
-                  <input
-                    type="text"
-                    value={editDescription}
-                    onChange={(e) => setEditDescription(e.target.value)}
-                    style={{
-                      marginLeft: '10px',
-                      padding: '5px',
-                      borderRadius: '4px',
-                      border: '1px solid #ccc',
-                    }}
-                  />
-                  <button
-                    onClick={() => saveTask(task.id)}
-                    style={{
-                      padding: '5px 10px',
-                      borderRadius: '4px',
-                      backgroundColor: '#28a745',
-                      color: '#fff',
-                      border: 'none',
-                      cursor: 'pointer',
-                      marginLeft: '5px',
-                    }}
-                  >
-                    Save
-                  </button>
-                  <button
-                    onClick={cancelEdit}
-                    style={{
-                      padding: '5px 10px',
-                      borderRadius: '4px',
-                      backgroundColor: '#dc3545',
-                      color: '#fff',
-                      border: 'none',
-                      cursor: 'pointer',
-                      marginLeft: '5px',
-                    }}
-                  >
-                    Cancel
-                  </button>
-                </div>
-              ) : (
-                <span style={{ marginLeft: '10px' }}>{task.description}</span>
-              )}
-            </div>
-            <button
-              onClick={() => deleteTask(task.id)}
+        {tasks
+          .filter((task) => !hideCompleted || task.state !== 'COMPLETE') // Filter completed tasks
+          .map((task) => (
+            <li
+              key={task.id}
               style={{
-                padding: '5px 10px',
-                borderRadius: '4px',
-                backgroundColor: '#dc3545',
-                color: '#fff',
-                border: 'none',
-                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '10px',
+                borderBottom: '1px solid #ddd',
               }}
-              aria-label="Delete task"
             >
-              Delete
-            </button>
-            {editingTaskId !== task.id && (
+              <div>
+                <input
+                  type="checkbox"
+                  checked={task.state === 'COMPLETE'}
+                  onChange={() => toggleTaskState(task.id, task.state)}
+                  aria-label={`Mark task as ${task.state === 'COMPLETE' ? 'incomplete' : 'complete'}`}
+                />
+                {editingTaskId === task.id ? (
+                  <div style={{ display: 'inline-flex', alignItems: 'center' }}>
+                    <input
+                      type="text"
+                      value={editDescription}
+                      onChange={(e) => setEditDescription(e.target.value)}
+                      style={{
+                        marginLeft: '10px',
+                        padding: '5px',
+                        borderRadius: '4px',
+                        border: '1px solid #ccc',
+                      }}
+                    />
+                    <button
+                      onClick={() => saveTask(task.id)}
+                      style={{
+                        padding: '5px 10px',
+                        borderRadius: '4px',
+                        backgroundColor: '#28a745',
+                        color: '#fff',
+                        border: 'none',
+                        cursor: 'pointer',
+                        marginLeft: '5px',
+                      }}
+                    >
+                      Save
+                    </button>
+                    <button
+                      onClick={cancelEdit}
+                      style={{
+                        padding: '5px 10px',
+                        borderRadius: '4px',
+                        backgroundColor: '#dc3545',
+                        color: '#fff',
+                        border: 'none',
+                        cursor: 'pointer',
+                        marginLeft: '5px',
+                      }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <span style={{ marginLeft: '10px' }}>{task.description}</span>
+                )}
+              </div>
               <button
-                onClick={() => {
-                  setEditingTaskId(task.id);
-                  setEditDescription(task.description);
-                }}
+                onClick={() => deleteTask(task.id)}
                 style={{
                   padding: '5px 10px',
                   borderRadius: '4px',
-                  backgroundColor: '#ffc107',
-                  color: '#000',
+                  backgroundColor: '#dc3545',
+                  color: '#fff',
                   border: 'none',
                   cursor: 'pointer',
-                  marginLeft: '10px',
                 }}
+                aria-label="Delete task"
               >
-                Edit
+                Delete
               </button>
-            )}
-          </li>
-        ))}
+              {editingTaskId !== task.id && (
+                <button
+                  onClick={() => {
+                    setEditingTaskId(task.id);
+                    setEditDescription(task.description);
+                  }}
+                  style={{
+                    padding: '5px 10px',
+                    borderRadius: '4px',
+                    backgroundColor: '#ffc107',
+                    color: '#000',
+                    border: 'none',
+                    cursor: 'pointer',
+                    marginLeft: '10px',
+                  }}
+                >
+                  Edit
+                </button>
+              )}
+            </li>
+          ))}
       </ul>
+
+      {/* Hide Completed Tasks */}
+      <div style={{ marginTop: '20px', textAlign: 'center' }}>
+        <label>
+          <input
+            type="checkbox"
+            checked={hideCompleted}
+            onChange={(e) => setHideCompleted(e.target.checked)}
+            style={{ marginRight: '10px' }}
+          />
+          Hide Completed
+        </label>
+      </div>
     </div>
   );
 }
