@@ -34,7 +34,17 @@ const todoResponseSchema = z.object({
 // Query Parameters Validation Schema
 const querySchema = z.object({
   filter: z.enum(['ALL', 'COMPLETE', 'INCOMPLETE']).optional(),
-  orderBy: z.enum(['description', 'createdAt', 'completedAt']).optional(),
+  orderBy: z
+    .string()
+    .refine((val) => {
+      const validColumns = ['description', 'createdAt', 'completedAt'];
+      const isDescending = val.startsWith('-');
+      const column = isDescending ? val.slice(1) : val;
+      return validColumns.includes(column);
+    }, {
+      message: "Invalid orderBy value. Must be 'description', '-description', 'createdAt', '-createdAt', 'completedAt', or '-completedAt'.",
+    })
+    .optional(),
 });
 
 // Middleware
@@ -61,14 +71,23 @@ app.get('/todos', async (req, res) => {
       query = query.where('state', 'INCOMPLETE');
     }
 
-    const todos = await query.orderBy(orderBy);
+    // Determine sorting order
+    const isDescending = orderBy.startsWith('-'); // Check if orderBy starts with "-"
+    const column = isDescending ? orderBy.slice(1) : orderBy; // Remove "-" if descending
+
+    // Apply sorting
+    query = query.orderBy(column, isDescending ? 'desc' : 'asc'); // Use 'asc' or 'desc' based on flag
+
+    const todos = await query;
 
     // Validate the response for all tasks
-    const validatedTodos = todos.map((todo) => todoResponseSchema.parse({
-      ...todo,
-      createdAt: formatDate(todo.createdAt),
-      completedAt: formatDate(todo.completedAt),
-    }));
+    const validatedTodos = todos.map((todo) =>
+      todoResponseSchema.parse({
+        ...todo,
+        createdAt: formatDate(todo.createdAt),
+        completedAt: formatDate(todo.completedAt),
+      })
+    );
     res.json(validatedTodos);
   } catch (error) {
     res.status(400).json({ error: error.errors || 'Invalid query parameters' });
