@@ -7,6 +7,8 @@ function App() {
   const [filter, setFilter] = useState('ALL');
   const [sortBy, setSortBy] = useState('createdAt');
   const [message, setMessage] = useState(''); // Feedback message
+  const [editingTaskId, setEditingTaskId] = useState(null); // ID of the task being edited
+  const [editDescription, setEditDescription] = useState(''); // New description for the task being edited
 
   // Fetch tasks from the backend
   useEffect(() => {
@@ -59,6 +61,30 @@ function App() {
         setMessage('Task deleted successfully!');
       })
       .catch((error) => setMessage('Error deleting task: ' + error.message));
+  };
+
+  // Save edited task description
+  const saveTask = (id) => {
+    if (!editDescription.trim()) {
+      setMessage('Task description cannot be empty.');
+      return;
+    }
+
+    axios
+      .patch(`http://localhost:3000/todos/${id}`, { description: editDescription })
+      .then((response) => {
+        setTasks(tasks.map((task) => (task.id === id ? response.data : task))); // Update the task list
+        setEditingTaskId(null); // Exit editing mode
+        setEditDescription(''); // Clear input
+        setMessage('Task updated successfully!');
+      })
+      .catch((error) => setMessage('Error updating task: ' + error.message));
+  };
+
+  // Cancel editing
+  const cancelEdit = () => {
+    setEditingTaskId(null);
+    setEditDescription('');
   };
 
   return (
@@ -175,7 +201,51 @@ function App() {
                 onChange={() => toggleTaskState(task.id, task.state)}
                 aria-label={`Mark task as ${task.state === 'COMPLETE' ? 'incomplete' : 'complete'}`}
               />
-              <span style={{ marginLeft: '10px' }}>{task.description}</span>
+              {editingTaskId === task.id ? (
+                <div style={{ display: 'inline-flex', alignItems: 'center' }}>
+                  <input
+                    type="text"
+                    value={editDescription}
+                    onChange={(e) => setEditDescription(e.target.value)}
+                    style={{
+                      marginLeft: '10px',
+                      padding: '5px',
+                      borderRadius: '4px',
+                      border: '1px solid #ccc',
+                    }}
+                  />
+                  <button
+                    onClick={() => saveTask(task.id)}
+                    style={{
+                      padding: '5px 10px',
+                      borderRadius: '4px',
+                      backgroundColor: '#28a745',
+                      color: '#fff',
+                      border: 'none',
+                      cursor: 'pointer',
+                      marginLeft: '5px',
+                    }}
+                  >
+                    Save
+                  </button>
+                  <button
+                    onClick={cancelEdit}
+                    style={{
+                      padding: '5px 10px',
+                      borderRadius: '4px',
+                      backgroundColor: '#dc3545',
+                      color: '#fff',
+                      border: 'none',
+                      cursor: 'pointer',
+                      marginLeft: '5px',
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <span style={{ marginLeft: '10px' }}>{task.description}</span>
+              )}
             </div>
             <button
               onClick={() => deleteTask(task.id)}
@@ -191,6 +261,25 @@ function App() {
             >
               Delete
             </button>
+            {editingTaskId !== task.id && (
+              <button
+                onClick={() => {
+                  setEditingTaskId(task.id);
+                  setEditDescription(task.description);
+                }}
+                style={{
+                  padding: '5px 10px',
+                  borderRadius: '4px',
+                  backgroundColor: '#ffc107',
+                  color: '#000',
+                  border: 'none',
+                  cursor: 'pointer',
+                  marginLeft: '10px',
+                }}
+              >
+                Edit
+              </button>
+            )}
           </li>
         ))}
       </ul>

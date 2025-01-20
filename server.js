@@ -64,7 +64,6 @@ app.get('/todos', async (req, res) => {
     const todos = await query.orderBy(orderBy);
 
     // Validate the response for all tasks
-    //const validatedTodos = todos.map((todo) => todoResponseSchema.parse(todo));
     const validatedTodos = todos.map((todo) => todoResponseSchema.parse({
       ...todo,
       createdAt: formatDate(todo.createdAt),
@@ -87,7 +86,6 @@ app.post('/todos', async (req, res) => {
     const newTask = await knex('todos').where({ id }).first();
 
     // Validate the response before sending it
-    //res.status(201).json(todoResponseSchema.parse(newTask));
     res.status(201).json(todoResponseSchema.parse({
       ...newTask,
       createdAt: formatDate(newTask.createdAt),
@@ -103,7 +101,7 @@ app.patch('/todos/:id', async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Validate the input using a partial schema (only optional fields)
+    // Validate the input using a partial schema (allow partial updates)
     const validatedData = todoInputSchema.partial().parse(req.body);
 
     // Check if the task exists
@@ -114,21 +112,31 @@ app.patch('/todos/:id', async (req, res) => {
 
     // Update the task in the database
     const updatedTask = {
-      state: validatedData.state,
-      completedAt: validatedData.state === 'COMPLETE' ? new Date().toISOString() : null,
+      ...validatedData, // Include validated fields (description and/or state)
+      completedAt:
+        validatedData.state === 'COMPLETE'
+          ? new Date().toISOString()
+          : validatedData.state === 'INCOMPLETE'
+          ? null
+          : task.completedAt, // Keep existing value if state isn't updated
     };
 
+    // Perform the update
     await knex('todos').where({ id }).update(updatedTask);
+
+    // Fetch the updated task from the database
     const result = await knex('todos').where({ id }).first();
 
     // Validate the response before sending it
-    //res.json(todoResponseSchema.parse(result));
-    res.json(todoResponseSchema.parse({
-      ...result,
-      createdAt: formatDate(result.createdAt),
-      completedAt: formatDate(result.completedAt),
-    }));
+    res.json(
+      todoResponseSchema.parse({
+        ...result,
+        createdAt: formatDate(result.createdAt),
+        completedAt: formatDate(result.completedAt),
+      })
+    );
   } catch (error) {
+    console.error('Error updating task:', error);
     res.status(400).json({ error: error.errors || 'Invalid request payload' });
   }
 });
